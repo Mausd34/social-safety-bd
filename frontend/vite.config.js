@@ -13,6 +13,19 @@ export default defineConfig({
     proxy: {
       "/api": { target: BACKEND, changeOrigin: true }
     }
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        // Split the heavy, rarely-changing vendor code out of the app bundle so
+        // it can be cached separately and re-used across deploys.
+        manualChunks: {
+          react: ["react", "react-dom", "react-router-dom"],
+          maps: ["leaflet", "react-leaflet"],
+          charts: ["recharts"]
+        }
+      }
+    }
   }
 });
 
