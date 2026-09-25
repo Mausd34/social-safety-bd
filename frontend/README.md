@@ -42,6 +42,8 @@ Vite's production build creates the deployable static bundle in `dist/`.
 /cities/<slug>      District profile
 /cases              Case records
 /cases/<case_id>    Case detail
+/hotels             Safe hotel directory
+/hotels/<id>        Hotel detail and reviews
 /report             Community reporting
 /emergency          Emergency help
 /login              Login UI
@@ -58,6 +60,6 @@ empty — see the root `README.md` for the full setup.
 
 ## Next step
 
-The hotel safety directory (`/api/hotels/`) is implemented on the backend but
-has no client functions in `api.js` and no page. Add both, plus a route in
-`App.jsx`, to finish it.
+The hotel directory is wired up end to end (`api.js` → `/hotels` → `/hotels/:id`
+→ admin moderation). It has no seed data, so add demo hotels at
+`/admin/api/hotel/` in the Django admin before browsing.

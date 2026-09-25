@@ -34,5 +34,10 @@ export const api = {
   postMessage: (id, message) => request(`/chat/threads/${id}/`, {method:"POST", body:JSON.stringify({message})}),
   adminThreads: () => request("/admin/chat/"),
   staffReply: (id, message, status) => request("/admin/chat/", {method:"POST", body:JSON.stringify({id, message, status})}),
+  hotels: (params = {}) => { const query = new URLSearchParams(params).toString(); return request(`/hotels/${query ? `?${query}` : ""}`); },
+  hotelDetail: (id) => request(`/hotels/${id}/`),
+  submitHotelReview: payload => request("/hotels/reviews/", {method:"POST", body:JSON.stringify(payload)}),
+  adminHotelReviews: () => request("/admin/hotels/reviews/"),
+  moderateHotelReview: (id, status) => request("/admin/hotels/reviews/", {method:"PATCH", body:JSON.stringify({id, status})}),
 };
 export default api;

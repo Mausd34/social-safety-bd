@@ -23,7 +23,7 @@ on the backend and **React 19 + Vite** on the frontend.
 | **Case records** | Verified-only case directory with category, court stage, and penal-code section citations, plus a detail page per case. |
 | **Community reporting** | Visitors submit incidents with optional evidence upload; staff review and moderate them from the Django admin. |
 | **Upazila help chat** | Anonymous visitors open a thread for their upazila; staff reply from an in-app inbox. Polling, thread lifecycle, and message history. |
-| **Hotel safety directory** | Browse verified hotels by district, price range and search, sorted by a separate safety rating. Every review is moderated by staff before it is published. **API only — no UI yet.** |
+| **Hotel safety directory** | Browse verified hotels by district, area, price and search, sorted by a separate safety rating. Guests rate a stay and tick "I was travelling alone", which is weighted in the UI. Staff moderate every review from the admin dashboard before it is published. |
 | **Dashboard** | Aggregate statistics by district, court stage, and monthly trend. |
 | **Auth** | Email/password registration, login, logout, and a current-user endpoint with staff-only boundaries. |
 | **Responsive UI** | Mobile-first layout, accessible focus states, and reduced-motion support. |
@@ -138,6 +138,8 @@ populated; if a page looks empty, the backend is probably not running.
 | `/cities/<slug>` | District profile |
 | `/cases` | Case records |
 | `/cases/<case_id>` | Case detail |
+| `/hotels` | Safe hotel directory, filterable |
+| `/hotels/<id>` | Hotel detail, reviews and the rate-this-stay form |
 | `/report` | Community reporting |
 | `/emergency` | Emergency help |
 | `/login`, `/register` | Auth |
@@ -273,11 +275,10 @@ lawful, authoritative sources with visible source and verification metadata.
 Listed deliberately — these are the things I would fix first, not an attempt to
 present the project as finished.
 
-- **The hotel feature has no frontend.** The API, models, admin and tests are
-  complete, but `src/api.js` has no hotel calls and there is no hotels page, so
-  none of it is reachable from the UI yet. It also has no `seed_demo` entries, so
-  a fresh clone sees an empty hotel table until hotels are added in the Django
-  admin (`/admin/api/hotel/`) or seeded.
+- **No hotel seed data.** The directory ships empty, so a fresh clone shows no
+  hotels until you add them at `/admin/api/hotel/` (tick **Verified**) or write a
+  seeder. Demo names should be fictional — rating a real hotel's safety would be
+  defamatory.
 - **CSRF protection is disabled** on the mutating endpoints via `@csrf_exempt`,
   and anonymous chat and hotel reviews have no rate limiting. Both must be fixed
   before real users.
