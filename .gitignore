@@ -18,6 +18,7 @@ db.sqlite3-journal
 /backend/staticfiles/
 local_settings.py
 *.log
+*.err
 
 # Node
 node_modules/
