@@ -2,8 +2,9 @@
 
 A public-safety awareness portal for Bangladesh: an interactive map of all 64
 districts, a case-records directory that cites the relevant penal-code
-sections, community incident reporting with staff moderation, and an anonymous
-help-chat routed to the visitor's upazila.
+sections, community incident reporting with staff moderation, an anonymous
+help-chat routed to the visitor's upazila, and a hotel safety directory where
+travellers rate where they felt safe staying.
 
 Built as a full-stack portfolio project with **Django + Django REST Framework**
 on the backend and **React 19 + Vite** on the frontend.
@@ -22,6 +23,7 @@ on the backend and **React 19 + Vite** on the frontend.
 | **Case records** | Verified-only case directory with category, court stage, and penal-code section citations, plus a detail page per case. |
 | **Community reporting** | Visitors submit incidents with optional evidence upload; staff review and moderate them from the Django admin. |
 | **Upazila help chat** | Anonymous visitors open a thread for their upazila; staff reply from an in-app inbox. Polling, thread lifecycle, and message history. |
+| **Hotel safety directory** | Browse verified hotels by district, price range and search, sorted by a separate safety rating. Every review is moderated by staff before it is published. **API only — no UI yet.** |
 | **Dashboard** | Aggregate statistics by district, court stage, and monthly trend. |
 | **Auth** | Email/password registration, login, logout, and a current-user endpoint with staff-only boundaries. |
 | **Responsive UI** | Mobile-first layout, accessible focus states, and reduced-motion support. |
@@ -41,11 +43,11 @@ Recharts, lucide-react, plain CSS
 ```
 backend/
   api/
-    models.py            City, Area, Case, Upazila, ChatThread, ChatMessage, SafetyReport
+    models.py            City, Area, Case, Upazila, ChatThread, ChatMessage, SafetyReport, Hotel, HotelReview
     views.py             Plain-Django JSON views (no DRF serializers)
     urls.py              /api/* routes
     admin.py             Staff moderation panels
-    tests/               78 tests: seed integrity, API filters, auth, chat lifecycle
+    tests/               107 tests: seed integrity, API filters, auth, chat lifecycle, hotel moderation
     management/commands/ seed_demo, seed_upazilas
   social_safety/         Settings, root URLconf, WSGI
 frontend/
@@ -58,6 +60,16 @@ docs/prototype.jpg       Full UI walkthrough
 ```
 
 ## Getting started
+
+### Prerequisites
+
+| Tool | Version | Check with |
+| --- | --- | --- |
+| Python | 3.10+ (3.12 used in CI) | `python --version` |
+| Node.js | 20.19+ or current LTS | `node --version` |
+| Git | any recent | `git --version` |
+
+You need **two terminals**: one for Django, one for Vite.
 
 ### 1. Backend
 
@@ -73,8 +85,19 @@ python manage.py runserver
 
 The API is then available at `http://127.0.0.1:8000/api`.
 
+`--reset` wipes and rebuilds the demo data. Plain `python manage.py seed_demo` is
+idempotent and safe to re-run, so use it if you already have a database you
+care about.
+
 If PowerShell blocks script activation, skip it and call the interpreter
 directly: `.\venv\Scripts\python.exe manage.py runserver`.
+
+Confirm it is alive before moving on:
+
+```bash
+curl http://127.0.0.1:8000/api/health/
+# {"status": "ok", "service": "Social Safety BD API"}
+```
 
 Create a staff account to reach the Django admin and the staff chat inbox:
 
@@ -92,7 +115,51 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:5173`.
+Open `http://localhost:5173`. The map, statistics and case pages will be
+populated; if a page looks empty, the backend is probably not running.
+
+### Ports and URLs
+
+| Service | URL | Notes |
+| --- | --- | --- |
+| Django API | `http://127.0.0.1:8000/api` | JSON only |
+| Django admin | `http://127.0.0.1:8000/admin` | Staff login required |
+| Vite dev server | `http://localhost:5173` | Proxies `/api` to Django |
+| Vite preview | `http://localhost:4173` | After `npm run build` |
+
+### Routes
+
+| Path | Page |
+| --- | --- |
+| `/` | Home |
+| `/map` | Interactive safety map |
+| `/statistics` | Analytics |
+| `/cities` | District directory |
+| `/cities/<slug>` | District profile |
+| `/cases` | Case records |
+| `/cases/<case_id>` | Case detail |
+| `/report` | Community reporting |
+| `/emergency` | Emergency help |
+| `/login`, `/register` | Auth |
+| `/admin` | Staff moderation dashboard |
+
+### Everyday commands
+
+```bash
+# Backend
+cd backend
+python manage.py test api                  # run the suite
+python manage.py makemigrations            # after changing models.py
+python manage.py migrate                   # apply migrations
+python manage.py createsuperuser           # staff account
+python manage.py seed_upazilas             # (re)load upazila data
+
+# Frontend
+cd frontend
+npm run dev                                # dev server with HMR
+npm run build                              # production bundle into dist/
+npm run preview                            # serve the built bundle
+```
 
 ### Why there is no CORS setup
 
@@ -107,12 +174,12 @@ to an absolute API host instead, set `VITE_API_URL`. Both are documented in
 ## Tests
 
 The backend has a real test suite covering seed-data integrity, API filtering,
-verification boundaries, auth and staff-authorization rules, and the full chat
-lifecycle.
+verification boundaries, auth and staff-authorization rules, the full chat
+lifecycle, and hotel review moderation.
 
 ```bash
 cd backend
-python manage.py test api          # 78 tests
+python manage.py test api          # 107 tests
 python manage.py test api -v 2     # per-test output
 ```
 
@@ -134,6 +201,9 @@ All responses are JSON. Session authentication is used throughout.
 | `GET` | `/api/cases/<case_id>/` | Single verified case |
 | `GET` | `/api/statistics/` | Aggregate totals and court-stage breakdown |
 | `GET` | `/api/upazilas/` | Upazilas. Supports `?district=`, `?search=` |
+| `GET` | `/api/hotels/` | Verified hotels, safest first. Supports `?city=`, `?search=`, `?price=`, `?min_rating=` |
+| `GET` | `/api/hotels/<id>/` | One hotel with its verified reviews and star breakdown |
+| `POST` | `/api/hotels/reviews/` | Submit a review (`hotel`, `author_name`, `rating`, `safety_rating`, `solo_traveller`, `body`). Held as `PENDING` until moderated |
 | `POST` | `/api/chat/threads/` | Open a help thread (`upazila`, `message`, `subject`) |
 | `GET`/`POST` | `/api/chat/threads/<id>/` | Read a thread / add a reply |
 | `POST` | `/api/reports/` | Submit an incident (multipart, optional evidence) |
@@ -153,9 +223,16 @@ All responses are JSON. Session authentication is used throughout.
 | --- | --- | --- |
 | `GET`/`PATCH` | `/api/admin/reports/` | Review and moderate submitted reports |
 | `GET`/`POST` | `/api/admin/chat/` | Staff inbox: list threads, reply, close |
+| `GET`/`PATCH` | `/api/admin/hotels/reviews/` | Hotel review queue: list reviews, set `PENDING`/`VERIFIED`/`REJECTED` |
 
 Unverified cases are never returned by the public API — a test asserts this, and
 another asserts the case-detail payload contains no personal-identifying fields.
+
+The same rule governs hotels, and it matters more there, because a safety rating
+is a claim about a named business. A hotel is only listed or readable once
+`verified` is set, and a review only appears publicly once a moderator marks it
+`VERIFIED`. Pending and rejected reviews never reach the public API and never
+influence the published averages. Both rules have dedicated tests.
 
 ## Data and ethics
 
@@ -178,6 +255,14 @@ case records carry **offence classification, court stage, and statutory section
 citations**, which is the information a public-safety portal can actually
 defensibly publish.
 
+**Hotel safety ratings are moderated.** A safety rating is a claim about a named,
+real business, so the feature is built the same way as incident reports: a hotel
+is invisible until staff verify it, and no review is published until a moderator
+approves it. The model documents that any demo hotel names must be fictional —
+rating a real hotel's safety would be defamatory — but no hotel seeder exists
+yet, so add your own through the Django admin rather than inventing ratings for
+real businesses.
+
 **Publishing rules for anyone extending this:** no victim identities, private
 addresses, or phone numbers; no unverified accusations; never label a person a
 criminal on the basis of a complaint alone. Public case data should come from
@@ -188,8 +273,14 @@ lawful, authoritative sources with visible source and verification metadata.
 Listed deliberately — these are the things I would fix first, not an attempt to
 present the project as finished.
 
+- **The hotel feature has no frontend.** The API, models, admin and tests are
+  complete, but `src/api.js` has no hotel calls and there is no hotels page, so
+  none of it is reachable from the UI yet. It also has no `seed_demo` entries, so
+  a fresh clone sees an empty hotel table until hotels are added in the Django
+  admin (`/admin/api/hotel/`) or seeded.
 - **CSRF protection is disabled** on the mutating endpoints via `@csrf_exempt`,
-  and anonymous chat has no rate limiting. Both must be fixed before real users.
+  and anonymous chat and hotel reviews have no rate limiting. Both must be fixed
+  before real users.
 - **Upazila coverage is partial** — 289 of roughly 495, hand-built. It needs to
   be replaced with the official LGED/BBS gazetteer.
 - **Statistics are not real data.** They need authoritative, auditable sources

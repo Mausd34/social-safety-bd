@@ -39,9 +39,9 @@ Vite's production build creates the deployable static bundle in `dist/`.
 /map                Interactive Safety Map
 /statistics         Analytics
 /cities             City directory
-/cities/dhaka       Dhaka profile
-/cities/dhaka/uttara Uttara profile
+/cities/<slug>      District profile
 /cases              Case records
+/cases/<case_id>    Case detail
 /report             Community reporting
 /emergency          Emergency help
 /login              Login UI
@@ -49,4 +49,15 @@ Vite's production build creates the deployable static bundle in `dist/`.
 /admin              Admin UI
 
 ## Next step
-Replace `src/data.js` with API calls to the Django backend in the project root.
+## API
+
+`src/api.js` talks to the Django backend over a relative `/api` path. In
+development the Vite dev server proxies that to `http://127.0.0.1:8000`, so no
+CORS setup is needed. The backend must be running or every page will render
+empty — see the root `README.md` for the full setup.
+
+## Next step
+
+The hotel safety directory (`/api/hotels/`) is implemented on the backend but
+has no client functions in `api.js` and no page. Add both, plus a route in
+`App.jsx`, to finish it.
