@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 from django.db.models import Count, Q, Sum
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from .models import Area, Case, ChatMessage, ChatThread, City, SafetyReport, Upazila
+from .models import Area, Case, ChatMessage, ChatThread, City, Hotel, HotelReview, SafetyReport, Upazila
 
 
 def _json(request):
@@ -179,6 +179,160 @@ def admin_reports(request):
         return JsonResponse({"success": True, "message": "Report status updated."})
     return JsonResponse({"success": False, "message": "Only GET and PATCH are allowed."}, status=405)
 
+
+def _rating(value):
+    """Coerce a submitted 1-5 rating, or return None when it is out of range."""
+    try:
+        score = int(value)
+    except (TypeError, ValueError):
+        return None
+    return score if 1 <= score <= 5 else None
+
+
+def _hotel_payload(hotel):
+    payload = {
+        "id": hotel.id, "name": hotel.name, "city": hotel.city.name,
+        "city_slug": hotel.city.slug, "area": hotel.area, "address": hotel.address,
+        "latitude": hotel.latitude, "longitude": hotel.longitude,
+        "price_range": hotel.price_range,
+        "amenities": {
+            "front_desk_24h": hotel.has_24h_front_desk,
+            "cctv": hotel.has_cctv,
+            "women_only_floor": hotel.has_women_only_floor,
+        },
+        "verified": hotel.verified,
+    }
+    payload.update(hotel.summary())
+    return payload
+
+
+def _review_payload(review):
+    return {
+        "id": review.id, "author": review.author_name, "rating": review.rating,
+        "safety_rating": review.safety_rating, "solo_traveller": review.solo_traveller,
+        "body": review.body, "created_at": review.created_at.isoformat(),
+    }
+
+
+def hotels(request):
+    """Public hotel search for travellers.
+
+    Results sort by safety rating first so the safest verified stays surface
+    ahead of the rest, which is the whole point for someone booking alone.
+    """
+    qs = Hotel.objects.select_related("city").filter(verified=True)
+    city = request.GET.get("city", "").strip()
+    if city:
+        qs = qs.filter(city__slug=city)
+    search = request.GET.get("search", "").strip()
+    if search:
+        qs = qs.filter(
+            Q(name__icontains=search) | Q(area__icontains=search) | Q(city__name__icontains=search)
+        )
+    price = request.GET.get("price", "").strip().upper()
+    if price in dict(Hotel.PRICE_CHOICES):
+        qs = qs.filter(price_range=price)
+    rows = [_hotel_payload(h) for h in qs]
+    floor = request.GET.get("min_rating", "").strip()
+    if floor:
+        try:
+            threshold = float(floor)
+        except ValueError:
+            threshold = 0.0
+        rows = [r for r in rows if (r["safety_rating"] or 0) >= threshold]
+    rows.sort(key=lambda r: (r["safety_rating"] or 0, r["review_count"]), reverse=True)
+    return JsonResponse(rows, safe=False)
+
+
+def hotel_detail(request, hotel_id):
+    hotel = Hotel.objects.select_related("city").filter(pk=hotel_id, verified=True).first()
+    if not hotel:
+        return JsonResponse({"success": False, "message": "Hotel not found."}, status=404)
+    payload = _hotel_payload(hotel)
+    reviews = list(hotel.reviews.filter(status=HotelReview.VERIFIED))
+    payload["reviews"] = [_review_payload(r) for r in reviews]
+    buckets = {score: 0 for score in range(1, 6)}
+    for review in reviews:
+        buckets[review.safety_rating] += 1
+    payload["safety_breakdown"] = [
+        {"stars": score, "count": buckets[score]} for score in range(5, 0, -1)
+    ]
+    payload["solo_reviews"] = sum(1 for r in reviews if r.solo_traveller)
+    return JsonResponse(payload)
+
+
+@csrf_exempt
+def hotel_review_create(request):
+    if request.method != "POST":
+        return JsonResponse({"success": False, "message": "Only POST method is allowed."}, status=405)
+    body = _json(request) or {}
+    try:
+        hotel = Hotel.objects.get(pk=int(body.get("hotel")), verified=True)
+    except (TypeError, ValueError, Hotel.DoesNotExist):
+        return JsonResponse({"success": False, "message": "Hotel not found."}, status=404)
+    author = str(body.get("author_name", "")).strip()[:80]
+    text = str(body.get("body", "")).strip()
+    rating = _rating(body.get("rating"))
+    safety = _rating(body.get("safety_rating"))
+    missing = []
+    if not author:
+        missing.append("a display name")
+    if not text:
+        missing.append("a short account of your stay")
+    if len(text) > 2000:
+        missing.append("a review under 2000 characters")
+    if rating is None:
+        missing.append("an overall rating from 1 to 5")
+    if safety is None:
+        missing.append("a safety rating from 1 to 5")
+    if missing:
+        return JsonResponse(
+            {"success": False, "message": "Please provide " + ", ".join(missing) + "."}, status=400
+        )
+    if request.user.is_authenticated and hotel.reviews.filter(user=request.user).exists():
+        return JsonResponse(
+            {"success": False, "message": "You have already reviewed this hotel."}, status=409
+        )
+    review = HotelReview.objects.create(
+        hotel=hotel,
+        user=request.user if request.user.is_authenticated else None,
+        author_name=author, rating=rating, safety_rating=safety,
+        solo_traveller=bool(body.get("solo_traveller")), body=text[:2000],
+    )
+    return JsonResponse({
+        "success": True,
+        "status": review.status,
+        "message": "Thank you. Your review appears once a moderator has checked it.",
+        "review": _review_payload(review),
+    }, status=201)
+
+
+@csrf_exempt
+def admin_hotel_reviews(request):
+    """Staff moderation queue. Reviews stay invisible until verified."""
+    if not request.user.is_staff:
+        return JsonResponse({"success": False, "message": "Staff access required."}, status=403)
+    if request.method == "GET":
+        reviews = HotelReview.objects.select_related("hotel", "hotel__city").all()[:100]
+        return JsonResponse([{
+            "id": r.id, "hotel": r.hotel.name, "city": r.hotel.city.name,
+            "author": r.author_name, "rating": r.rating, "safety_rating": r.safety_rating,
+            "solo_traveller": r.solo_traveller, "body": r.body, "status": r.status,
+            "created_at": r.created_at.isoformat(),
+        } for r in reviews], safe=False)
+    if request.method == "PATCH":
+        body = _json(request) or {}
+        try:
+            review = HotelReview.objects.get(pk=int(body.get("id")))
+        except (TypeError, ValueError, HotelReview.DoesNotExist):
+            return JsonResponse({"success": False, "message": "Review not found."}, status=404)
+        status = str(body.get("status", "")).upper()
+        if status not in {code for code, _ in HotelReview.STATUS_CHOICES}:
+            return JsonResponse({"success": False, "message": "Unknown review status."}, status=400)
+        review.status = status
+        review.save(update_fields=["status"])
+        return JsonResponse({"success": True, "id": review.id, "status": review.status})
+    return JsonResponse({"success": False, "message": "Only GET and PATCH are allowed."}, status=405)
 
 def upazilas(request):
     district = request.GET.get("district", "").strip()

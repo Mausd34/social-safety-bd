@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Avg, Count
 
 class City(models.Model):
     name = models.CharField(max_length=120, unique=True)
@@ -132,3 +133,93 @@ class SafetyReport(models.Model):
 
     def __str__(self):
         return f"{self.category} - {self.location}"
+
+
+class Hotel(models.Model):
+    """An accommodation travellers can rate for safety.
+
+    A safety rating is a serious claim about a business, so listings only appear
+    publicly once staff have verified them. Seeded names are fictional: rating a
+    real hotel's safety would be defamatory, so the demo data invents its own.
+    """
+
+    PRICE_CHOICES = [
+        ("BUDGET", "Budget"),
+        ("MID", "Mid-range"),
+        ("PREMIUM", "Premium"),
+    ]
+    name = models.CharField(max_length=160)
+    city = models.ForeignKey(City, on_delete=models.CASCADE, related_name="hotels")
+    area = models.CharField(max_length=120, blank=True)
+    address = models.CharField(max_length=240, blank=True)
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
+    price_range = models.CharField(max_length=20, choices=PRICE_CHOICES, default="BUDGET")
+    has_24h_front_desk = models.BooleanField(default=False)
+    has_cctv = models.BooleanField(default=False)
+    has_women_only_floor = models.BooleanField(default=False)
+    verified = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("name",)
+
+    def __str__(self):
+        return self.name
+
+    def summary(self):
+        """Average ratings from verified reviews only.
+
+        Unverified reviews are excluded so that a pending or rejected review can
+        never influence what the public sees.
+        """
+        totals = self.reviews.filter(status=HotelReview.VERIFIED).aggregate(
+            rating=Avg("rating"), safety=Avg("safety_rating"), total=Count("id"))
+        return {
+            "rating": round(totals["rating"], 1) if totals["rating"] else None,
+            "safety_rating": round(totals["safety"], 1) if totals["safety"] else None,
+            "review_count": totals["total"] or 0,
+        }
+
+
+class HotelReview(models.Model):
+    """A traveller's account of staying at a hotel.
+
+    Reviews land as PENDING and are only published after staff verification,
+    matching the moderation policy used for incident reports.
+    """
+
+    PENDING = "PENDING"
+    VERIFIED = "VERIFIED"
+    REJECTED = "REJECTED"
+
+    STATUS_CHOICES = [
+        (PENDING, "Pending Review"),
+        (VERIFIED, "Verified"),
+        (REJECTED, "Rejected"),
+    ]
+    hotel = models.ForeignKey(Hotel, on_delete=models.CASCADE, related_name="reviews")
+    user = models.ForeignKey("auth.User", on_delete=models.SET_NULL, null=True, blank=True)
+    author_name = models.CharField(max_length=80)
+    rating = models.PositiveSmallIntegerField()
+    safety_rating = models.PositiveSmallIntegerField()
+    solo_traveller = models.BooleanField(default=False)
+    body = models.TextField(max_length=2000)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="PENDING")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        constraints = [
+            # One review per signed-in account per hotel. Anonymous rows have a
+            # NULL user, which SQL unique constraints ignore, so visitors who are
+            # not logged in can still contribute.
+            models.UniqueConstraint(
+                fields=["hotel", "user"],
+                condition=models.Q(user__isnull=False),
+                name="unique_review_per_user_per_hotel",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.hotel.name} - {self.rating}/5"

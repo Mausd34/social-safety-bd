@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Area, Case, ChatMessage, ChatThread, City, SafetyReport, Upazila
+from .models import Area, Case, ChatMessage, ChatThread, City, Hotel, HotelReview, SafetyReport, Upazila
 
 @admin.register(City)
 class CityAdmin(admin.ModelAdmin):
@@ -47,4 +47,19 @@ class SafetyReportAdmin(admin.ModelAdmin):
     list_display = ("id", "category", "location", "status", "created_at")
     list_filter = ("status", "category")
     search_fields = ("location", "category", "description")
+    readonly_fields = ("created_at",)
+
+@admin.register(Hotel)
+class HotelAdmin(admin.ModelAdmin):
+    list_display = ("name", "city", "area", "price_range", "verified",
+                    "has_24h_front_desk", "has_cctv", "has_women_only_floor")
+    list_filter = ("verified", "price_range", "city")
+    search_fields = ("name", "city__name", "area", "address")
+
+@admin.register(HotelReview)
+class HotelReviewAdmin(admin.ModelAdmin):
+    list_display = ("id", "hotel", "author_name", "rating", "safety_rating",
+                    "solo_traveller", "status", "created_at")
+    list_filter = ("status", "rating", "safety_rating", "solo_traveller")
+    search_fields = ("hotel__name", "author_name", "body")
     readonly_fields = ("created_at",)
