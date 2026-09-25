@@ -10,8 +10,9 @@ from datetime import date, timedelta
 
 from django.core.management.base import BaseCommand
 from django.db import transaction
+from django.utils.text import slugify
 
-from api.models import Area, Case, City
+from api.models import Area, Case, City, Upazila
 
 SYNTHETIC_SOURCE = "SYNTHETIC demo record - fabricated for prototyping, not real data"
 
@@ -306,6 +307,23 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(
             f"Loaded {City.objects.count()} districts, {area_count} areas "
             f"and {case_count} cases across {len(divisions)} divisions."
+        ))
+        # --reset deletes City rows, which cascades to Upazila. Reload them so a
+        # single seed command still produces a complete database.
+        from .seed_upazilas import UPAZILAS
+        upazila_count = 0
+        for district_slug, names in UPAZILAS.items():
+            district = city_map.get(district_slug)
+            if not district:
+                continue
+            for name in names:
+                Upazila.objects.update_or_create(
+                    district=district, name=name,
+                    defaults={"slug": slugify(f"{district_slug}-{name}")},
+                )
+                upazila_count += 1
+        self.stdout.write(self.style.SUCCESS(
+            f"Reloaded {upazila_count} upazilas across {len(UPAZILAS)} districts."
         ))
         self.stdout.write(self.style.WARNING(
             "All statistics are SYNTHETIC and fabricated for prototyping. "
