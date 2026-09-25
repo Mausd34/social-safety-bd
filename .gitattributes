@@ -1,0 +1,21 @@
+# Normalise line endings so the repo behaves the same on Windows and Linux.
+* text=auto eol=lf
+
+*.py    text diff=python
+*.js    text
+*.jsx   text
+*.json  text
+*.css   text
+*.html  text
+*.md    text
+
+# Binary assets
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+
+# Keep lockfiles and migrations out of line-ending translation
+package-lock.json -diff linguist-generated=true
+backend/api/migrations/*.py text

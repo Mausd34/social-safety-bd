@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Virtualenv - never commit (~48MB of absolute-pathed binaries)
+venv/
+.venv/
+env/
+ENV/
+
+# Django
+db.sqlite3
+db.sqlite3-journal
+*.sqlite3
+/backend/media/
+/backend/staticfiles/
+local_settings.py
+*.log
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log*
+.pnpm-store/
+
+# Vite build output
+dist/
+dist-ssr/
+.vite/
+
+# Environment - never commit real secrets
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Editors / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Test / coverage
+.coverage
+coverage/
+htmlcov/
