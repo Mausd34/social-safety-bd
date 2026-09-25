@@ -156,3 +156,27 @@ button.side-stat:hover,button.side-stat.active{background:#eaf3ff}
 .tag.amber{background:#fff5dd;color:#9a6500}
 .muted{color:var(--muted)}
 td.review-cell{white-space:normal;min-width:280px;line-height:1.55;color:#3d4d63}
+/* ---- Hotel photos ---- */
+.hotel-card{padding:0;overflow:hidden;gap:0}
+.hotel-card-body{padding:16px;display:flex;flex-direction:column;gap:12px}
+.hotel-media{position:relative;background:#eaf0f7}
+.hotel-img{display:block;width:100%;height:168px;object-fit:cover}
+.photo-fallback{display:grid;place-items:center;background:linear-gradient(135deg,#0c3b65,#4ba7d4);color:#fff;font:800 44px Manrope;letter-spacing:-2px}
+.hotel-img.photo-fallback{height:168px}
+.hotel-badges{position:absolute;top:10px;left:10px}
+.tag.price{background:#0b1c33cc;color:#fff;backdrop-filter:blur(4px)}
+.hotel-score{position:absolute;right:10px;bottom:10px;display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:9px;font-weight:800;font-size:12px;backdrop-filter:blur(6px);background:#0b1c33cc;color:#fff}
+.hotel-score b{font:800 15px Manrope}
+.hotel-score em{font-style:normal;font-size:9.5px;opacity:.82;letter-spacing:.5px;text-transform:uppercase}
+.hotel-score.good{background:#0b7a4bd9}
+.hotel-score.mid{background:#b4600ad9}
+.hotel-score.low{background:#b42318d9}
+.review-count{font-size:11px;color:var(--muted);font-weight:600}
+.hotel-hero-media{display:grid;grid-template-columns:1fr 1fr;gap:0;background:#fff;border:1px solid var(--line);border-radius:20px;overflow:hidden;margin-bottom:18px;box-shadow:0 5px 20px #18365708}
+.hotel-hero-img{width:100%;height:100%;min-height:290px;object-fit:cover;display:block}
+.hotel-hero-img.photo-fallback{min-height:290px;font-size:80px}
+.hotel-hero-text{padding:26px 24px;display:flex;flex-direction:column;justify-content:center}
+.hotel-hero-text h1{font-size:clamp(24px,2.6vw,36px);letter-spacing:-1px;margin:9px 0}
+.hotel-hero-score{padding:26px 24px;border-left:1px solid var(--line);display:flex;flex-direction:column;justify-content:center;gap:11px}
+.photo-note{font-size:10.5px;color:var(--muted);margin:14px 0 0;font-style:italic}
+@media(max-width:950px){.hotel-hero-media{grid-template-columns:1fr}.hotel-hero-img{min-height:200px}.hotel-hero-img.photo-fallback{min-height:200px}.hotel-hero-score{border-left:0;border-top:1px solid var(--line)}}

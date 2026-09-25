@@ -155,6 +155,7 @@ class Hotel(models.Model):
     latitude = models.FloatField(null=True, blank=True)
     longitude = models.FloatField(null=True, blank=True)
     price_range = models.CharField(max_length=20, choices=PRICE_CHOICES, default="BUDGET")
+    photo = models.ImageField(upload_to="hotel-photos/", blank=True, null=True)
     has_24h_front_desk = models.BooleanField(default=False)
     has_cctv = models.BooleanField(default=False)
     has_women_only_floor = models.BooleanField(default=False)

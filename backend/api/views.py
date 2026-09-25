@@ -195,6 +195,7 @@ def _hotel_payload(hotel):
         "city_slug": hotel.city.slug, "area": hotel.area, "address": hotel.address,
         "latitude": hotel.latitude, "longitude": hotel.longitude,
         "price_range": hotel.price_range,
+        "photo": hotel.photo.url if hotel.photo else None,
         "amenities": {
             "front_desk_24h": hotel.has_24h_front_desk,
             "cctv": hotel.has_cctv,

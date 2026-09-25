@@ -114,6 +114,23 @@ class HotelListingTests(HotelFixture):
         self.assertTrue(payload["amenities"]["cctv"])
         self.assertFalse(payload["amenities"]["women_only_floor"])
 
+    def test_a_hotel_without_a_photo_reports_none(self):
+        """The UI falls back to a placeholder, so the key must be present."""
+        payload = get_json(self.client, f"/api/hotels/{self.verified_hotel.id}/")
+        self.assertIsNone(payload["photo"])
+
+    def test_an_uploaded_photo_is_served_back_in_the_payload(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        png = (
+            b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01"
+            b"\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\rIDATx\x9cc\x00"
+            b"\x01\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82"
+        )
+        self.verified_hotel.photo.save("shot.png", SimpleUploadedFile("shot.png", png), save=True)
+        payload = get_json(self.client, f"/api/hotels/{self.verified_hotel.id}/")
+        self.assertTrue(payload["photo"].startswith("/media/hotel-photos/"))
+
 
 class HotelReviewModerationTests(HotelFixture):
     def test_a_new_review_is_held_for_moderation(self):

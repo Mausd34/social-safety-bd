@@ -11,7 +11,11 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      "/api": { target: BACKEND, changeOrigin: true }
+      // Media is proxied too: an uploaded hotel photo is served from
+      // /media/... on the Django origin, so without this the browser would ask
+      // Vite for it and get a 404.
+      "/api": { target: BACKEND, changeOrigin: true },
+      "/media": { target: BACKEND, changeOrigin: true }
     }
   },
   build: {

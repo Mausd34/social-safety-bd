@@ -40,8 +40,12 @@ python manage.py createsuperuser
 ```
 
 Hotels are managed at http://127.0.0.1:8000/admin/api/hotel/ — tick **Verified**
-before a listing is visible publicly. Hotel reviews are moderated at
-`/admin/api/hotelreview/`.
+before a listing is visible publicly, and upload a photo to the same form. Hotel
+reviews are moderated at `/admin/api/hotelreview/`.
+
+Photos are optional. A hotel with no photo still renders, using an initial
+placeholder. In development Django serves `/media/` and Vite proxies it, so
+uploaded images load; production needs a real media host.
 
 ## Tests
 

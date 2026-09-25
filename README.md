@@ -23,7 +23,7 @@ on the backend and **React 19 + Vite** on the frontend.
 | **Case records** | Verified-only case directory with category, court stage, and penal-code section citations, plus a detail page per case. |
 | **Community reporting** | Visitors submit incidents with optional evidence upload; staff review and moderate them from the Django admin. |
 | **Upazila help chat** | Anonymous visitors open a thread for their upazila; staff reply from an in-app inbox. Polling, thread lifecycle, and message history. |
-| **Hotel safety directory** | Browse verified hotels by district, area, price and search, sorted by a separate safety rating. Guests rate a stay and tick "I was travelling alone", which is weighted in the UI. Staff moderate every review from the admin dashboard before it is published. |
+| **Hotel safety directory** | Browse verified hotels by district, area, price and search, each card showing a photo and a colour-coded safety score. Guests rate a stay and tick "I was travelling alone", which is weighted in the UI. Staff moderate every review from the admin dashboard before it is published. |
 | **Dashboard** | Aggregate statistics by district, court stage, and monthly trend. |
 | **Auth** | Email/password registration, login, logout, and a current-user endpoint with staff-only boundaries. |
 | **Responsive UI** | Mobile-first layout, accessible focus states, and reduced-motion support. |
@@ -173,6 +173,9 @@ To point the dev proxy somewhere else, set `VITE_BACKEND_URL`. To send requests
 to an absolute API host instead, set `VITE_API_URL`. Both are documented in
 `frontend/.env.example`.
 
+The dev proxy forwards **both** `/api` and `/media`, so an uploaded hotel photo
+is fetched from Django rather than 404ing against the Vite origin.
+
 ## Tests
 
 The backend has a real test suite covering seed-data integrity, API filtering,
@@ -277,8 +280,12 @@ present the project as finished.
 
 - **No hotel seed data.** The directory ships empty, so a fresh clone shows no
   hotels until you add them at `/admin/api/hotel/` (tick **Verified**) or write a
-  seeder. Demo names should be fictional — rating a real hotel's safety would be
-  defamatory.
+  seeder. Demo names should be fictional and demo images should be generated
+  placeholders — publishing a real photograph, or a safety rating for a real
+  property, would be misleading.
+- **Uploaded media is dev-only.** `/media/` is served by Django in `DEBUG` and
+  proxied by Vite, so uploads work in development. Production needs a real media
+  host or object storage.
 - **CSRF protection is disabled** on the mutating endpoints via `@csrf_exempt`,
   and anonymous chat and hotel reviews have no rate limiting. Both must be fixed
   before real users.
