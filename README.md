@@ -127,6 +127,20 @@ populated; if a page looks empty, the backend is probably not running.
 | Vite dev server | `http://localhost:5173` | Proxies `/api` to Django |
 | Vite preview | `http://localhost:4173` | After `npm run build` |
 
+### If the frontend will not connect
+
+Use **`localhost`**, not `127.0.0.1`. Vite's default host resolves through
+`localhost`, which on some machines is IPv6 (`::1`) only — in that case
+`http://127.0.0.1:5173` is refused even though the server is running. If you
+need to reach the dev server from another device on the network, start it with:
+
+```bash
+npm run dev -- --host
+```
+
+That binds all interfaces, so anything on your LAN can load the app while it
+runs. Keep it off otherwise.
+
 ### Routes
 
 | Path | Page |
