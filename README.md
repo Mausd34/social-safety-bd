@@ -47,8 +47,15 @@ backend/
     views.py             Plain-Django JSON views (no DRF serializers)
     urls.py              /api/* routes
     admin.py             Staff moderation panels
-    tests/               107 tests: seed integrity, API filters, auth, chat lifecycle, hotel moderation
-    management/commands/ seed_demo, seed_upazilas
+    tests/               121 tests: seed integrity, API filters, auth, chat lifecycle, hotel moderation
+    management/commands/ seed_demo (districts, cases, hotels), seed_upazilas
+  journal/               Citizen-journal layer (posts, comments, engagement, moderation)
+    models.py            Post, Comment, Like, Share, ModerationFlag, JournalistVerification, PostAnalytics
+    views.py             Plain-Django JSON views (no DRF serializers)
+    urls.py              /api/journal/* routes
+    admin.py             Bulk publish/reject, moderation queue, journalist approvals
+    tests/               59 tests: publishing, permissions, engagement, moderation
+    management/commands/ seed_journal (demo posts, comments, a pending application)
   social_safety/         Settings, root URLconf, WSGI
 frontend/
   src/
@@ -198,7 +205,7 @@ lifecycle, and hotel review moderation.
 
 ```bash
 cd backend
-python manage.py test api          # 107 tests
+python manage.py test api          # 121 tests
 python manage.py test api -v 2     # per-test output
 ```
 
@@ -292,11 +299,11 @@ lawful, authoritative sources with visible source and verification metadata.
 Listed deliberately — these are the things I would fix first, not an attempt to
 present the project as finished.
 
-- **No hotel seed data.** The directory ships empty, so a fresh clone shows no
-  hotels until you add them at `/admin/api/hotel/` (tick **Verified**) or write a
-  seeder. Demo names should be fictional and demo images should be generated
-  placeholders — publishing a real photograph, or a safety rating for a real
-  property, would be misleading.
+- **Hotel data is entirely invented.** `seed_demo` creates 14 fictional hotels
+  with generated gradient placeholders and moderated reviews, so a fresh clone
+  has a browsable directory. Nothing in it refers to a real business, and it must
+  stay that way — a real photograph or a safety rating attached to a real hotel
+  would be misleading. If you add listings, tick **Verified** or they stay hidden.
 - **Uploaded media is dev-only.** `/media/` is served by Django in `DEBUG` and
   proxied by Vite, so uploads work in development. Production needs a real media
   host or object storage.

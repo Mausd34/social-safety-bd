@@ -8,8 +8,17 @@ python -m venv venv
 pip install -r requirements.txt
 python manage.py migrate
 python manage.py seed_demo
+python manage.py seed_journal
 python manage.py runserver
 ```
+
+`seed_demo` loads all 64 districts, demo cases, and 14 fictional hotels with
+placeholder photos and moderated reviews. Use `seed_demo --reset` to rebuild
+from scratch; it is safe to re-run either way.
+
+`seed_journal` adds the citizen-journal demo content (posts, comments, likes,
+a pending journalist application and a moderation report). It is separate from
+`seed_demo` so you can rebuild one without the other, and takes `--reset` too.
 
 If PowerShell blocks activation, use:
 
@@ -31,6 +40,10 @@ API:
 - http://127.0.0.1:8000/api/statistics/
 - http://127.0.0.1:8000/api/upazilas/
 - http://127.0.0.1:8000/api/hotels/
+- http://127.0.0.1:8000/api/journal/posts/
+- http://127.0.0.1:8000/api/journal/feed/
+- http://127.0.0.1:8000/api/journal/posts/trending/
+- http://127.0.0.1:8000/api/journal/stats/
 - http://127.0.0.1:8000/admin/
 
 ## Admin
@@ -50,10 +63,10 @@ uploaded images load; production needs a real media host.
 ## Tests
 
 ```powershell
-python manage.py test api
+python manage.py test api journal
 ```
 
-107 tests. CI runs the same command; see `../.github/workflows/ci.yml`.
+180 tests. CI runs the same command; see `../.github/workflows/ci.yml`.
 
 ## Production note
 Change SECRET_KEY, DEBUG, ALLOWED_HOSTS, database configuration, CORS, file storage and authentication before deployment.

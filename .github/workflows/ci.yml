@@ -27,7 +27,7 @@ jobs:
       - name: Run system checks
         run: python manage.py check
       - name: Run tests
-        run: python manage.py test api -v 2
+        run: python manage.py test api journal -v 2
 
   frontend:
     name: Frontend build (React + Vite)
