@@ -28,17 +28,17 @@ Captured from the running app against seeded demo data. Regenerate them with
 | --- | --- |
 | ![Statistics](docs/screens/statistics.png) | ![Districts](docs/screens/districts.png) |
 
-| Case records | Safe hotels |
+| District profile | Case records |
 | --- | --- |
-| ![Case records](docs/screens/cases.png) | ![Safe hotels](docs/screens/hotels.png) |
+| ![District profile](docs/screens/district-detail.png) | ![Case records](docs/screens/cases.png) |
 
-| Citizen journal | Journal post |
+| Safe hotels | Citizen journal |
 | --- | --- |
-| ![Citizen journal](docs/screens/journal.png) | ![Journal post](docs/screens/journal-post.png) |
+| ![Safe hotels](docs/screens/hotels.png) | ![Citizen journal](docs/screens/journal.png) |
 
-| Emergency help | Sign in |
+| Journal post | Emergency help |
 | --- | --- |
-| ![Emergency help](docs/screens/emergency.png) | ![Sign in](docs/screens/login.png) |
+| ![Journal post](docs/screens/journal-post.png) | ![Emergency help](docs/screens/emergency.png) |
 
 ## Features
 
@@ -48,7 +48,7 @@ Captured from the running app against seeded demo data. Regenerate them with
 | --- | --- |
 | **Interactive map** | All 64 districts with real coordinates, colour-coded risk markers, legend, and click-to-zoom. Filter by division or free-text search. |
 | **Case records** | Verified-only case directory with category, court stage, and penal-code section citations, plus a detail page per case. |
-| **Districts** | Per-district pages carrying case tallies, coordinates, and the offence breakdown. |
+| **Districts** | Per-district pages carrying case tallies, coordinates, and the offence breakdown, each with generated map artwork. |
 | **Dashboard** | Aggregate statistics by district, court stage, and monthly trend. |
 
 ### Citizen journal (`/journal`)
@@ -394,6 +394,15 @@ is a claim about a named business. A hotel is only listed or readable once
 `verified` is set, and a review only appears publicly once a moderator marks it
 `VERIFIED`. Pending and rejected reviews never reach the public API and never
 influence the published averages. Both rules have dedicated tests.
+
+**District artwork is generated, never photographed.**
+`seed_district_photos` writes a map-style card per district into
+`media/district-photos/`. It is not a stock image captioned with a real place
+name, because that would imply it depicts that district. The colour comes from
+a stable hash of the slug and the pin from the real coordinates, so the grid
+looks varied and geographically sensible while claiming nothing. If this ever
+becomes a real product, replace it with licensed photography and alt text
+before launch.
 
 ## Data and ethics
 

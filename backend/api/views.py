@@ -67,6 +67,7 @@ def logout_view(request):
 
 def cities(request):
     data = [{"id": c.id, "name": c.name, "slug": c.slug, "division": c.division,
+             "photo": c.photo.url if c.photo else None,
              "latitude": c.latitude, "longitude": c.longitude,
              "reported": c.reported_cases,
              "investigation": c.under_investigation, "trial": c.under_trial,

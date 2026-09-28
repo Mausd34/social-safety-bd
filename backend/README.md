@@ -9,6 +9,7 @@ pip install -r requirements.txt
 python manage.py migrate
 python manage.py seed_demo
 python manage.py seed_journal
+python manage.py seed_district_photos
 python manage.py runserver
 ```
 
@@ -20,6 +21,15 @@ from scratch; it is safe to re-run either way.
 likes, a share, a pending journalist application and a moderation report). It
 is separate from `seed_demo` so you can rebuild one without the other, and
 takes `--reset` too.
+
+`seed_district_photos` generates one illustrative image per district into
+`media/district-photos/`. These are **generated artwork, not photographs** — a
+stock photo captioned "Sylhet" would imply it depicts Sylhet, which is the kind
+of claim this project avoids. Each card's colour comes from a stable hash of
+the district slug and its pin from the real latitude and longitude, so the set
+looks varied and geographically sensible. Use `--force` to rebuild, or
+`--only <slug>` for a single district. Images are written to `media/`, which is
+gitignored, so run this once after cloning.
 
 If PowerShell blocks activation, use:
 
