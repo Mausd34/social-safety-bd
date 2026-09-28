@@ -8,11 +8,12 @@ publication. Records are tagged so they can never be mistaken for real data.
 import hashlib
 from datetime import date, timedelta
 
+from django.core.files.base import ContentFile
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils.text import slugify
 
-from api.models import Area, Case, City, Upazila
+from api.models import Area, Case, City, Hotel, HotelReview, Upazila
 
 SYNTHETIC_SOURCE = "SYNTHETIC demo record - fabricated for prototyping, not real data"
 
@@ -218,6 +219,93 @@ def case_category(seed):
     return "GENERAL", ""
 
 
+# Fictional accommodation for the safety directory. Every name here is invented:
+# a safety rating attached to a real hotel would be a defamatory claim, so the
+# demo never borrows a real business. Areas are real neighbourhood names so the
+# area search behaves realistically.
+# name, district slug, area, address, price, 24h desk, CCTV, women-only floor
+HOTELS = [
+    ("Meghna Riverside Lodge", "dhaka", "Uttara", "House 12, Road 7", "MID", True, True, True),
+    ("Baldha Garden Guesthouse", "dhaka", "Gulshan", "Road 79", "PREMIUM", True, True, True),
+    ("Karnafuli Hill Rest House", "chattogram", "Agrabad", "Hill View Road", "BUDGET", False, True, False),
+    ("Kamalakshi Surf Lodge", "coxs-bazar", "Cox's Bazar", "Marine Drive", "MID", True, False, False),
+    ("Surma Junction Lodge", "sylhet", "Zindabazar", "Station Road", "MID", True, True, True),
+    ("Padma Riverside Guesthouse", "rajshahi", "Rajshahi", "Natore Road", "BUDGET", False, False, False),
+    ("Khalisagar Bay Lodge", "khulna", "Khulna", "Boyra Crossing", "MID", True, True, False),
+    ("Kirtankhola Rest House", "barishal", "Barishal", "Kirtankhola Road", "BUDGET", False, False, False),
+    ("Teesta Garden Lodge", "rangpur", "Rangpur", "Station Road", "BUDGET", False, True, False),
+    ("Brahmaputra View Rest House", "mymensingh", "Mymensingh", "Dhaka Road", "MID", True, True, False),
+    ("Gangasagar Guesthouse", "cumilla", "Cumilla", "Rajshahi Road", "BUDGET", False, False, False),
+    ("Karatoa Riverside Lodge", "bogura", "Bogura", "Station Road", "BUDGET", False, True, False),
+    ("Shitalchura Hill View", "gazipur", "Gazipur", "Chandana Chowrasta", "PREMIUM", True, True, True),
+    ("Shitalakshya Riverside Inn", "narayanganj", "Narayanganj", "Bandar Road", "BUDGET", False, False, False),
+]
+
+# Reviewer names and accounts are invented too. The mix of ratings is what makes
+# the safety-first sorting visible rather than every hotel tying at the top.
+REVIEWERS = [
+    ("Nusrat J.", True), ("Rahim U.", False), ("Tanvir H.", True),
+    ("Sadia R.", True), ("Imran K.", False), ("Farhana A.", True),
+    ("Shafin J.", False), ("Nusrat J.", True), ("Rumana T.", True),
+]
+REVIEW_BODIES = [
+    "Front desk staffed all night, and I felt safe walking back from the station.",
+    "Well lit street outside and the staff called a rickshaw for me after dark.",
+    "Quiet at night. The gate was locked and someone was always on the desk.",
+    "Staff were respectful and did not make a fuss about me travelling alone.",
+    "The lane behind the hotel gets dark after 10pm, so I stayed on the main road.",
+    "Reception answered the phone at 2am and arranged transport to the airport.",
+    "CCTV in the corridor and the lift, which made me feel better coming back alone.",
+    "Good location near the bus terminal, though the crossing is busy at night.",
+    "They kept a torch at the front desk for the walk back from the far gate.",
+]
+
+# Placeholder artwork, keyed by price band. These are gradients, not photographs:
+# inventing an image of a real property would misrepresent it, and the UI labels
+# every one of them as a placeholder.
+PHOTO_PALETTE = {
+    "BUDGET": ((16, 166, 106), (52, 211, 153)),
+    "MID": ((15, 111, 255), (53, 167, 255)),
+    "PREMIUM": ((124, 92, 255), (58, 190, 255)),
+}
+
+
+def make_placeholder_photo(hotel):
+    """Draw a small gradient tile so a listing has an image without a photo.
+
+    Returns True if a photo is now attached. Kept deliberately tiny: the point is
+    a recognisable block of colour in the card, not a convincing picture.
+    """
+    try:
+        from io import BytesIO
+
+        from PIL import Image, ImageDraw
+    except ImportError:
+        return False
+    if hotel.photo:
+        return True
+    width, height = 480, 270
+    top, bottom = PHOTO_PALETTE.get(hotel.price_range, PHOTO_PALETTE["MID"])
+    image = Image.new("RGB", (width, height))
+    draw = ImageDraw.Draw(image)
+    for y in range(height):
+        t = y / (height - 1)
+        draw.line(
+            [(0, y), (width, y)],
+            fill=tuple(int(top[i] + (bottom[i] - top[i]) * t) for i in range(3)),
+        )
+    # A simple skyline, so the tile reads as "property" without depicting one.
+    for i in range(9):
+        base = height - 40 - (i % 4) * 14
+        draw.rectangle([i * 56 + 18, base, i * 56 + 52, height], fill=(255, 255, 255))
+    draw.rectangle([0, height - 14, width, height], fill=(255, 255, 255))
+    buffer = BytesIO()
+    image.save(buffer, format="JPEG", quality=72)
+    name = slugify(hotel.city.name + "-" + hotel.name)[:60]
+    hotel.photo.save(f"{name}.jpg", ContentFile(buffer.getvalue()), save=True)
+    return True
+
+
 class Command(BaseCommand):
     help = "Load clearly marked SYNTHETIC demo data for all 64 districts of Bangladesh"
 
@@ -325,7 +413,64 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(
             f"Reloaded {upazila_count} upazilas across {len(UPAZILAS)} districts."
         ))
+
+        # Hotels hang off City with on_delete=CASCADE, so --reset above already
+        # cleared them along with their reviews. Recreate them every run.
+        hotel_count = 0
+        review_count = 0
+        with_photos = 0
+        for name, slug, area, address, price, desk, cctv, women_floor in HOTELS:
+            city = city_map.get(slug)
+            if not city:
+                self.stdout.write(self.style.WARNING(f"Skipped hotel in unknown district: {slug}"))
+                continue
+            hotel, _created = Hotel.objects.update_or_create(
+                city=city, name=name,
+                defaults={
+                    "area": area, "address": address, "price_range": price,
+                    "has_24h_front_desk": desk, "has_cctv": cctv,
+                    "has_women_only_floor": women_floor, "verified": True,
+                },
+            )
+            hotel_count += 1
+            if make_placeholder_photo(hotel):
+                with_photos += 1
+            # Two to four accounts per hotel, drawn from the hash so the spread
+            # of safety scores is stable across re-seeds and the sort order is
+            # meaningful instead of every hotel tying at the top.
+            # Distinct (author, body) pairs only: the lookup key below would
+            # otherwise collapse two slots into one row and the reported total
+            # would not match the rows actually written.
+            accounts = []
+            for index in range(2 + _seed_value(f"hotel:{slug}:{name}") % 3):
+                seed = _seed_value(f"review:{slug}:{name}:{index}")
+                pair = (
+                    REVIEWERS[seed % len(REVIEWERS)][0],
+                    REVIEW_BODIES[(seed >> 5) % len(REVIEW_BODIES)],
+                )
+                if pair not in [a[:2] for a in accounts]:
+                    accounts.append((pair[0], pair[1], seed))
+            for author, body, seed in accounts:
+                solo = next(s for n, s in REVIEWERS if n == author)
+                # 24h desk and CCTV are the amenities travellers mention most, so
+                # they nudge the safety score up.
+                safety = 2 + (seed % 4) + (1 if desk else 0) + (1 if cctv else 0)
+                rating = max(1, min(5, safety - (1 if (seed >> 3) % 5 == 0 else 0)))
+                HotelReview.objects.update_or_create(
+                    hotel=hotel, author_name=author, body=body,
+                    defaults={
+                        "user": None, "rating": rating,
+                        "safety_rating": min(5, safety),
+                        "solo_traveller": solo, "status": HotelReview.VERIFIED,
+                    },
+                )
+                review_count += 1
+        self.stdout.write(self.style.SUCCESS(
+            f"Seeded {hotel_count} hotels ({with_photos} with a placeholder photo) "
+            f"and {review_count} moderated reviews."
+        ))
         self.stdout.write(self.style.WARNING(
             "All statistics are SYNTHETIC and fabricated for prototyping. "
-            "Replace them with authoritative, verifiable sources before publication."
+            "Replace them with authoritative, verifiable sources before publication. "
+            "Hotel names and photos are invented placeholders, not real businesses."
         ))
