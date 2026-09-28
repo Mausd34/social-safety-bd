@@ -15,17 +15,74 @@ on the backend and **React 19 + Vite** on the frontend.
 
 ![All 12 screens of the application](docs/prototype.jpg)
 
+## Screenshots
+
+Captured from the running app against seeded demo data. Regenerate them with
+`npm run dev` plus `manage.py runserver`, then a headless browser.
+
+| Home | Safety map |
+| --- | --- |
+| ![Home](docs/screens/home.png) | ![Safety map](docs/screens/map.png) |
+
+| Statistics | Districts |
+| --- | --- |
+| ![Statistics](docs/screens/statistics.png) | ![Districts](docs/screens/districts.png) |
+
+| Case records | Safe hotels |
+| --- | --- |
+| ![Case records](docs/screens/cases.png) | ![Safe hotels](docs/screens/hotels.png) |
+
+| Citizen journal | Journal post |
+| --- | --- |
+| ![Citizen journal](docs/screens/journal.png) | ![Journal post](docs/screens/journal-post.png) |
+
+| Emergency help | Sign in |
+| --- | --- |
+| ![Emergency help](docs/screens/emergency.png) | ![Sign in](docs/screens/login.png) |
+
 ## Features
+
+### Safety data
 
 | Area | What it does |
 | --- | --- |
 | **Interactive map** | All 64 districts with real coordinates, colour-coded risk markers, legend, and click-to-zoom. Filter by division or free-text search. |
 | **Case records** | Verified-only case directory with category, court stage, and penal-code section citations, plus a detail page per case. |
+| **Districts** | Per-district pages carrying case tallies, coordinates, and the offence breakdown. |
+| **Dashboard** | Aggregate statistics by district, court stage, and monthly trend. |
+
+### Citizen journal (`/journal`)
+
+Community posts filed against a district, kept in a **separate Django app**
+(`backend/journal/`) so the case-tracking side is untouched and the two can
+ship independently.
+
+| Area | What it does |
+| --- | --- |
+| **Feeds** | District feed, trending ranking weighted by engagement and faded by age, and a full list — all with district, topic and text filters. |
+| **Posts** | Write, edit and delete. Optional display name, so a tip can be filed without exposing an account. Image upload capped at 5 MB. |
+| **Comments** | Threaded replies on any post, with likes. |
+| **Engagement** | Like toggles, share tracking by channel, and view counts. |
+| **Verification** | Journalists apply once; staff approve or reject, and approved bylines carry a verified badge across the journal. |
+| **Moderation** | Anyone — including signed-out visitors — can report a post or comment. Staff work a queue and record a resolution. |
+| **Author dashboard** | Your posts (including rejected ones, so you can see why), plus views, likes, shares, comments and flags received. |
+
+### Community and support
+
+| Area | What it does |
+| --- | --- |
 | **Community reporting** | Visitors submit incidents with optional evidence upload; staff review and moderate them from the Django admin. |
 | **Upazila help chat** | Anonymous visitors open a thread for their upazila; staff reply from an in-app inbox. Polling, thread lifecycle, and message history. |
 | **Hotel safety directory** | Browse verified hotels by district, area, price and search, each card showing a photo and a colour-coded safety score. Guests rate a stay and tick "I was travelling alone", which is weighted in the UI. Staff moderate every review from the admin dashboard before it is published. |
-| **Dashboard** | Aggregate statistics by district, court stage, and monthly trend. |
+| **Emergency help** | One-tap dialling for 999, 109 and 16123. |
+
+### Platform
+
+| Area | What it does |
+| --- | --- |
 | **Auth** | Email/password registration, login, logout, and a current-user endpoint with staff-only boundaries. |
+| **Moderation admin** | Staff-only dashboard: safety-report queue, help-desk inbox, hotel review queue, journal report queue, journalist approvals. |
+| **Django admin** | Bulk publish/reject on posts, moderation queues, and bulk approval actions. |
 | **Responsive UI** | Mobile-first layout, accessible focus states, and reduced-motion support. |
 
 ## Tech stack
@@ -57,13 +114,15 @@ backend/
     tests/               59 tests: publishing, permissions, engagement, moderation, CSRF safety
     management/commands/ seed_journal (demo posts, comments, a pending application)
   social_safety/         Settings, root URLconf, WSGI
+  docs/
+    prototype.jpg        Original 12-screen walkthrough
+    screens/             Per-page screenshots embedded in this README
 frontend/
   src/
     App.jsx              Routes and layout
     data.js              UI constants
     api.js               API client with a relative /api base
     styles.css           Design system
-docs/prototype.jpg       Full UI walkthrough
 ```
 
 ## Citizen journal
@@ -101,6 +160,46 @@ allow duplicate comment likes.
 disables CSRF checks, so a view missing `@csrf_exempt` passes every other test
 and then fails with a 403 the first time a real browser posts to it. Those
 tests use a CSRF-enforcing client to cover the browser path.
+
+### Journal API
+
+All under `/api/journal/`, plain JSON, session auth.
+
+| Method | Path | Notes |
+| --- | --- | --- |
+| `GET` `POST` | `/posts/` | List with `city`, `category`, `q`, `author`, `limit`, `offset`; create (login) |
+| `GET` | `/posts/trending/` | Engagement ranking, 30-day window |
+| `GET` | `/posts/{id}/` | Detail; `PATCH`/`DELETE` for the author or staff |
+| `POST` `DELETE` | `/posts/{id}/like/` | Toggle |
+| `POST` | `/posts/{id}/share/` | `LINK`, `FACEBOOK`, `WHATSAPP`, `X`, `OTHER` |
+| `POST` | `/posts/{id}/view/` | View counter, open to anonymous |
+| `GET` | `/posts/{id}/comments/` | Published comments |
+| `POST` | `/comments/` | Add; pass `parent` to reply |
+| `GET` `PATCH` `DELETE` | `/comments/{id}/` | Edit for the author, moderate for staff |
+| `POST` `DELETE` | `/comments/{id}/like/` | Toggle |
+| `GET` | `/feed/` `search/` `stats/` | Personalised feed, combined search, headline counts |
+| `GET` | `/me/posts/` `me/analytics/` | Author's own posts and reach (login) |
+| `POST` | `/flags/` | File a report — open to signed-out users |
+| `POST` | `/journalist/apply/` | Apply for the badge (login, once per account) |
+| `GET` `PATCH` | `/admin/flags/` `admin/journalists/` | Staff-only queues |
+
+## Testing notes
+
+Two bugs in this repository were invisible to the test suite and only showed up
+when the app was actually run. Both are now guarded:
+
+- **CSRF.** See `journal/tests/test_csrf.py` above.
+- **Effect cleanups.** Several pages called `useEffect(load, [deps])` where
+  `load` returns a Promise. React treats an effect's return value as the cleanup
+  function, so under `React.StrictMode` — which double-invokes effects in
+  development — it immediately tried to call the Promise, and
+  `/hotels` and `/cases` rendered blank with
+  `TypeError: destroy is not a function`. It would also have broken in
+  production whenever the user navigated away. All six are now
+  `useEffect(() => { load() }, [deps])`.
+
+Both were found by driving a headless browser against the running app, which
+is worth doing after any change to a page's effects.
 
 ## Getting started
 
