@@ -148,6 +148,7 @@ def _int_arg(request, name, default, minimum=1, maximum=100):
     return max(minimum, min(value, maximum))
 
 
+@csrf_exempt
 def posts(request):
     """List posts, newest first, with the usual district/category/author filters."""
     if request.method == "GET":
@@ -203,6 +204,7 @@ def posts(request):
 
 
 
+@csrf_exempt
 def post_detail(request, post_id):
     """Read one post, edit it, or delete it. Author and staff may do both."""
     try:

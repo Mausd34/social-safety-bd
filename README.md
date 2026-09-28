@@ -54,7 +54,7 @@ backend/
     views.py             Plain-Django JSON views (no DRF serializers)
     urls.py              /api/journal/* routes
     admin.py             Bulk publish/reject, moderation queue, journalist approvals
-    tests/               59 tests: publishing, permissions, engagement, moderation
+    tests/               59 tests: publishing, permissions, engagement, moderation, CSRF safety
     management/commands/ seed_journal (demo posts, comments, a pending application)
   social_safety/         Settings, root URLconf, WSGI
 frontend/
@@ -65,6 +65,42 @@ frontend/
     styles.css           Design system
 docs/prototype.jpg       Full UI walkthrough
 ```
+
+## Citizen journal
+
+A second feature area, mounted at `/api/journal/`, for community posts rather
+than official case records. It is a separate Django app (`backend/journal/`)
+so the case-tracking side is untouched and the two can ship independently.
+
+| Page | Route | What it does |
+| --- | --- | --- |
+| Journal | `/journal` | District feed, trending ranking, and every post, with district/topic filters and search |
+| Post | `/journal/:id` | Full post, threaded comments, like, share, and report |
+| Write | `/journal/new` | Publish a post with an optional byline name |
+| My posts | `/journal/mine` | Everything you published, your reach, and the journalist application |
+| Admin | `/admin` | Staff-only report queue and journalist approvals |
+
+Models: `Post`, `Comment`, `Like`, `Share`, `ModerationFlag`,
+`JournalistVerification`, `PostAnalytics`.
+
+Two rules worth knowing before you change this code:
+
+- **An author can edit and delete their own posts but cannot change moderation
+  status.** Only staff can reject, and a rejected post vanishes from public
+  listings while staying visible to its author.
+- **Reader reports are open to signed-out users.** The people most likely to
+  notice a dangerous or defamatory post are often the least willing to
+  register, and staff triage the queue by hand anyway.
+
+Integrity is enforced in the database rather than only in the views: check
+constraints make a `Like` and a `ModerationFlag` target exactly one of
+post/comment, because SQL unique constraints ignore NULLs and would otherwise
+allow duplicate comment likes.
+
+`journal/tests/test_csrf.py` deserves a mention — Django's default test client
+disables CSRF checks, so a view missing `@csrf_exempt` passes every other test
+and then fails with a 403 the first time a real browser posts to it. Those
+tests use a CSRF-enforcing client to cover the browser path.
 
 ## Getting started
 
@@ -205,7 +241,7 @@ lifecycle, and hotel review moderation.
 
 ```bash
 cd backend
-python manage.py test api          # 121 tests
+python manage.py test api journal     # 190 tests
 python manage.py test api -v 2     # per-test output
 ```
 

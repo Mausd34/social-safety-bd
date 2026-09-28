@@ -180,3 +180,50 @@ td.review-cell{white-space:normal;min-width:280px;line-height:1.55;color:#3d4d63
 .hotel-hero-score{padding:26px 24px;border-left:1px solid var(--line);display:flex;flex-direction:column;justify-content:center;gap:11px}
 .photo-note{font-size:10.5px;color:var(--muted);margin:14px 0 0;font-style:italic}
 @media(max-width:950px){.hotel-hero-media{grid-template-columns:1fr}.hotel-hero-img{min-height:200px}.hotel-hero-img.photo-fallback{min-height:200px}.hotel-hero-score{border-left:0;border-top:1px solid var(--line)}}
+
+/* ---- Citizen journal ---- */
+.tag.warn{background:#fdecec;color:#a71d27}
+.journal-head-actions{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 18px}
+.journal-filters{display:flex;flex-direction:column;gap:12px;margin-bottom:18px}
+.chip-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border-radius:9px;border:1px solid var(--line);background:#fbfdff;color:#44536a;font-size:12px;font-weight:700;cursor:pointer}
+.chip:hover{border-color:#9fc8ff;color:var(--ink)}
+.chip.on{background:#0f6fff;border-color:#0f6fff;color:#fff}
+.journal-filters select{border:1px solid var(--line);border-radius:9px;padding:8px 10px;background:#fbfdff;color:var(--ink);font-size:12px;font-weight:600}
+.journal-filters .searchbox{flex:1 1 200px}
+.journal-list{display:flex;flex-direction:column;gap:13px}
+.post-card{gap:9px}
+.post-meta{display:flex;align-items:center;gap:9px;flex-wrap:wrap;font-size:11.5px}
+.post-meta .muted{display:inline-flex;align-items:center;gap:4px}
+.post-title{font:800 17px Manrope;margin:0;line-height:1.4}
+.post-body{margin:0;font-size:13.5px;line-height:1.6;color:#3d4d63;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.post-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding-top:9px;border-top:1px solid var(--line);margin-top:3px}
+.act{display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border-radius:8px;border:1px solid transparent;background:none;color:#5a6a80;font-size:12px;font-weight:700;cursor:pointer}
+.act:hover{background:#eef2f7;color:var(--ink)}
+.act.on{background:#e9f8f1;color:#08754c}
+.act.right{margin-left:auto}
+.act.right+.act.right{margin-left:0}
+.act.static{cursor:default;color:#687890}
+.act.static:hover{background:none;color:#687890}
+.act.danger:hover{background:#fdecec;color:#a71d27}
+.flag-wrap{position:relative;display:inline-flex}
+.flag-menu{position:absolute;top:calc(100% + 6px);left:0;z-index:20;width:270px;padding:7px;display:flex;flex-direction:column;gap:3px;box-shadow:0 14px 32px #0b1c3326}
+.flag-menu button{text-align:left;padding:8px 10px;border:0;border-radius:8px;background:none;font-size:12.5px;font-weight:600;color:#3d4d63;cursor:pointer}
+.flag-menu button:hover{background:#eef2f7}
+.post-detail{gap:11px;margin-bottom:16px}
+.post-detail-title{font:800 26px Manrope;margin:0;line-height:1.3}
+.post-detail-body{margin:0;font-size:14.5px;line-height:1.75;color:#3d4d63;white-space:pre-wrap}
+.comment-form{display:flex;flex-direction:column;gap:9px;margin-bottom:16px;align-items:flex-start}
+.comment-form textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:11px 12px;background:#fbfdff;color:var(--ink);font:inherit;min-height:74px;resize:vertical}
+.comment-form textarea:focus{border-color:#9fc8ff;box-shadow:0 0 0 3px #0f6fff0c}
+.replying-to{display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted)}
+.replying-to button{border:0;background:none;color:#0f6fff;font-size:12px;font-weight:700;cursor:pointer}
+.comment-list{display:flex;flex-direction:column;gap:12px}
+.comment{border:1px solid var(--line);border-radius:12px;padding:12px 13px;background:#fbfdff}
+.comment-head{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12.5px}
+.comment-body{margin:6px 0 0;font-size:13.5px;line-height:1.6;color:#3d4d63;white-space:pre-wrap}
+.comment .post-actions{border-top:0;padding-top:5px;margin-top:0}
+.journal-badge{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.journal-badge b{display:block;font-size:14px}
+.journal-badge span{font-size:12px;color:var(--muted)}
+.journal-badge.good{border-color:#c7ecdc;background:#f4fdf9;color:#08754c}

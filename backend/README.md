@@ -16,9 +16,10 @@ python manage.py runserver
 placeholder photos and moderated reviews. Use `seed_demo --reset` to rebuild
 from scratch; it is safe to re-run either way.
 
-`seed_journal` adds the citizen-journal demo content (posts, comments, likes,
-a pending journalist application and a moderation report). It is separate from
-`seed_demo` so you can rebuild one without the other, and takes `--reset` too.
+`seed_journal` adds the citizen-journal demo content (5 posts, 3 comments,
+likes, a share, a pending journalist application and a moderation report). It
+is separate from `seed_demo` so you can rebuild one without the other, and
+takes `--reset` too.
 
 If PowerShell blocks activation, use:
 
@@ -66,7 +67,7 @@ uploaded images load; production needs a real media host.
 python manage.py test api journal
 ```
 
-180 tests. CI runs the same command; see `../.github/workflows/ci.yml`.
+190 tests. CI runs the same command; see `../.github/workflows/ci.yml`.
 
 ## Production note
 Change SECRET_KEY, DEBUG, ALLOWED_HOSTS, database configuration, CORS, file storage and authentication before deployment.
