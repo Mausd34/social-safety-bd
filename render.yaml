@@ -1,0 +1,37 @@
+services:
+  - type: web
+    name: social-safety-bd-api
+    runtime: python
+    plan: free
+    rootDir: .
+    buildCommand: "bash build.sh"
+    startCommand: "cd backend && gunicorn social_safety.wsgi:application --bind 0.0.0.0:$PORT"
+    healthCheckPath: /api/health/
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.10
+      - key: DJANGO_DEBUG
+        value: "False"
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_ALLOWED_HOSTS
+        value: "social-safety-bd-api.onrender.com"
+      - key: CORS_ALLOWED_ORIGINS
+        value: "https://social-safety-bd-frontend.onrender.com"
+      - key: CSRF_TRUSTED_ORIGINS
+        value: "https://social-safety-bd-frontend.onrender.com"
+
+  - type: web
+    name: social-safety-bd-frontend
+    runtime: static
+    plan: free
+    rootDir: frontend
+    buildCommand: "npm ci && npm run build"
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        value: "https://social-safety-bd-api.onrender.com/api"
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
