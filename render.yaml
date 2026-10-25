@@ -3,7 +3,6 @@ services:
     name: social-safety-bd-api
     runtime: python
     plan: free
-    rootDir: .
     buildCommand: "bash build.sh"
     startCommand: "cd backend && gunicorn social_safety.wsgi:application --bind 0.0.0.0:$PORT"
     healthCheckPath: /api/health/
@@ -24,7 +23,6 @@ services:
   - type: web
     name: social-safety-bd-frontend
     runtime: static
-    plan: free
     rootDir: frontend
     buildCommand: "npm ci && npm run build"
     staticPublishPath: dist
